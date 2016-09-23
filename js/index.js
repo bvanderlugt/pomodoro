@@ -9,42 +9,43 @@ var Clock = function(runTime) {
   // this.endTime = endTime;
   this.currentTime = Date.parse(new Date());
   this.targetTime = (runTime*60*1000);
-  this.timeRemaining = new Date(currentTime + targetTime);
+  this.timeRemaining = new Date(this.currentTime + this.targetTime);
+  console.log(this.timeRemaining);
 
   // reduce timeReamining by one second
   this.decrementSecond = function() {
-    timeRemaining -= 1000;
+    this.timeRemaining -= 1000;
   }
 
   // returns time left in miliseconds
   this.getTimeRemaining = function() {
-    return Date.parse(timeRemaining) - Date.parse(new Date());
+    return Date.parse(this.timeRemaining) - Date.parse(new Date());
   }
 
   this.startBreak = function() {
-    breakTime = true;
+    this.breakTime = true;
   }
 
   this.endBreak = function() {
-    breakTime = false;
+    this.breakTime = false;
   }
 
   this.startRunning = function() {
-    running = true;
+    this.running = true;
   }
 
   this.stopRunning = function() {
-    running = false;
+    this.running = false;
   }
 
 }
 
 function convertMilisToSecondMinutes(milis) {
   // var t = Date.parse(endtime) - Date.parse(new Date());
+  console.log("im gonna parse some shit " + milis);
   var seconds = Math.floor( (milis/1000) % 60);
   var minutes = Math.floor( (milis/1000/60) % 60);
   return {
-    "total": t,
     "minutes": minutes,
     "seconds": seconds
   }
@@ -116,24 +117,31 @@ $(document).ready(function() {
   clock.querySelector(".minutes").innerHTML = ("0" + newInterval).slice(-2);
   clock.querySelector(".seconds").innerHTML = "00"
   var runTime = document.getElementById("interval").innerHTML;
-  var pomodoroClock = new Clock(runTime);
+  pomodoroClock = new Clock(runTime);
 })
 
 $(".circle").on("click", function() {
+
+  if (pomodoroClock.running) {
+    console.log("and I'm back in here now " + pomodoroClock.running)
+    clearInterval(refreshIntervalId);
+    pomodoroClock.stopRunning();
+  }
+
+  console.log("timer clicked and clock status is: " + pomodoroClock.running);
   if (!pomodoroClock.running) {
+    console.log("can I get in here? " + pomodoroClock.running);
+    pomodoroClock.startRunning();
+    console.log("can I has running? " + pomodoroClock.running);
+
     var refreshIntervalId = setInterval(function() {
       pomodoroClock.decrementSecond();
       // update view
       var minutesLeft = convertMilisToSecondMinutes(pomodoroClock.getTimeRemaining()).minutes
       var secondsLeft = convertMilisToSecondMinutes(pomodoroClock.getTimeRemaining()).seconds
-      minutesSpan.innerHTML = minutesLeft;
-      secondsSpan.innerHTL = secondsLeft;
+      document.getElementById("timer").querySelector(".minutes").innerHTML = minutesLeft;
+      document.getElementById("timer").querySelector(".seconds").innerHTML = secondsLeft;
     }, 1000);
-  }
-
-  if (pomodoroClock.running) {
-    clearInterval(refreshIntervalId);
-    // update view
   }
 
   //   var clock = document.getElementById("timer");
