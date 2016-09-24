@@ -2,13 +2,15 @@
 
 const globalVars = {}
 
+/**
+param int runTime : minutes of runtime
+**/
 var Clock = function (runTime) {
   console.log('clock instance created')
   this.runTime = runTime
   this.breakTime = false
   this.running = false
-  // this.endTime = this.endTime
-  let durationOfTimerInMilis = (runTime * 60 * 1000)
+  let durationOfTimerInMilis = runTime * 60 * 1000
   let endTime = new Date(Date.parse(new Date()) + durationOfTimerInMilis)
   this.timeRemaining = Date.parse(endTime) - Date.parse(new Date())
 
@@ -22,12 +24,59 @@ var Clock = function (runTime) {
     return this.timeRemaining
   }
 
-  this.toggleBreak = function () {
-    this.breakTime = !this.breakTime
+  // set time in minutes
+  this.setTimeRemaining = function (newTime) {
+    let newTimeMilis = newTime * 60 * 1000
+    let endTime = new Date(Date.parse(new Date()) + newTimeMilis)
+    this.timeRemaining = Date.parse(endTime) - Date.parse(new Date())
   }
 
-  this.toggleRunning = function () {
-    this.running = !this.running
+  // this.toggleBreak = function () {
+  //   this.breakTime = !this.breakTime
+  // }
+  //
+  // this.toggleRunning = function () {
+  //   this.running = !this.running
+  // }
+
+  this.start = function () {
+    console.log("clock started and breaktime is " + this.breakTime)
+    this.running = true
+    this.refreshIntervalId = setInterval(function () {
+      globalVars.pomodoroClock.decrementSecond()
+      // update view
+      var minutesLeft = convertMilisToSecondMinutes(globalVars.pomodoroClock.getTimeRemaining()).minutes
+      var secondsLeft = convertMilisToSecondMinutes(globalVars.pomodoroClock.getTimeRemaining()).seconds
+      document.getElementById('timer').querySelector('.minutes').innerHTML = ('0' + minutesLeft).slice(-2)
+      document.getElementById('timer').querySelector('.seconds').innerHTML = ('0' + secondsLeft).slice(-2)
+      // console.log('dafuq is time remaining ' + globalVars.pomodoroClock.getTimeRemaining())
+
+      if (globalVars.pomodoroClock.getTimeRemaining() <= 0) {
+        console.log('time expired')
+        if (!globalVars.pomodoroClock.breakTime) {
+          globalVars.pomodoroClock.breakTime = true
+          // if start of breaktime reset clock to break interval and start running it
+          document.getElementById('sound').play()
+          console.log("it's breaktime! Have we set BT to true? " + globalVars.pomodoroClock.breakTime)
+          globalVars.pomodoroClock.setTimeRemaining(document.getElementById('break').innerHTML)
+        } else {
+          globalVars.pomodoroClock.pause()
+          globalVars.pomodoroClock.breakTime = false
+          console.log("ok, breaktime should be over now: " + globalVars.pomodoroClock.breakTime)
+          globalVars.pomodoroClock.setTimeRemaining(document.getElementById('interval').innerHTML)
+          var freshStartMin = convertMilisToSecondMinutes(globalVars.pomodoroClock.getTimeRemaining()).minutes
+          var freshStartSec = convertMilisToSecondMinutes(globalVars.pomodoroClock.getTimeRemaining()).seconds
+          document.getElementById('timer').querySelector('.minutes').innerHTML = ('0' + freshStartMin).slice(-2)
+          document.getElementById('timer').querySelector('.seconds').innerHTML = ('0' + freshStartSec).slice(-2)
+        }
+      }
+    }, 1000)
+  }
+
+  this.pause = function () {
+    this.running = false
+    clearInterval(this.refreshIntervalId)
+    delete this.refreshIntervalId
   }
 }
 
@@ -101,113 +150,84 @@ function updateTimer (id, type) {
 // / isBreak
 // var isBreak = false;
 
+/* global $ */
+
 $(document).ready(function () {
   var newInterval = document.getElementById('interval').innerHTML
   var clock = document.getElementById('timer')
   clock.querySelector('.minutes').innerHTML = ('0' + newInterval).slice(-2)
   clock.querySelector('.seconds').innerHTML = '00'
   var runTime = document.getElementById('interval').innerHTML
-  console.log("runTime is " + runTime)
+  console.log('runTime is ' + runTime)
   globalVars.pomodoroClock = new Clock(runTime)
 })
 
-var refreshIntervalId
+// initializing in global scope, does not seem to work on global namespace
+// var refreshIntervalId
 
 $('.circle').on('click', function () {
-  console.log("running state of clock is " + globalVars.pomodoroClock.running)
-
-  // when running returns true
-  if (globalVars.pomodoroClock.running) {
-    console.log(globalVars.clearInterval)
-    clearInterval(refreshIntervalId)
-    // globalVars.pomodoroClock.toggleRunning()
-  }
-
+  // console.log('at click running state of clock is ' + globalVars.pomodoroClock.running)
   // when running returns false
   if (!globalVars.pomodoroClock.running) {
-    // console.log('can I get in here? ' + globalVars.pomodoroClock.running)
-    // globalVars.pomodoroClock.toggleRunning()
-    // console.log('can I has running? ' + globalVars.pomodoroClock.running)
-
-    refreshIntervalId = setInterval(function () {
-      globalVars.pomodoroClock.decrementSecond()
-      // update view
-      var minutesLeft = convertMilisToSecondMinutes(globalVars.pomodoroClock.getTimeRemaining()).minutes
-      var secondsLeft = convertMilisToSecondMinutes(globalVars.pomodoroClock.getTimeRemaining()).seconds
-      document.getElementById('timer').querySelector('.minutes').innerHTML = ('0' + minutesLeft).slice(-2)
-      document.getElementById('timer').querySelector('.seconds').innerHTML = ('0' + secondsLeft).slice(-2)
-    }, 1000)
-
-    // toggle the state of running
-    globalVars.pomodoroClock.toggleRunning()
+    globalVars.pomodoroClock.start()
+  } else {
+    globalVars.pomodoroClock.pause()
   }
-
-  //   var clock = document.getElementById("timer");
-  //   var minutesSpan = clock.querySelector(".minutes");
-  //   var secondsSpan = clock.querySelector(".seconds");
-  // if (!running) {
-  //   if (isBreak) {
-  //     var breaktime = document.getElementById("break").innerHTML;
-  //     var endtime = minutesSpan.innerHTML
-  //     // pass in the timer id, the deadline in mintes and breaktime in    minutes
-  //     runningclock = initializeClock("timer", endtime, breaktime);
-  //     running = true;
-  //   } else {
-  //     var starttime = document.getElementById("interval").innerHTML;
-  //     var endtime = minutesSpan.innerHTML
-  //     runningclock = initializeClock("timer", endtime, starttime);
-  //     running = true;
-  //   }
-  // } else {
-  //   // grab current time
-  //   var currentMin = minutesSpan.innerHTML;
-  //   var currentSec = secondsSpan.innerHTML;
-  //   // if clicked when clock is running, clearInterval
-  //   clearInterval(runningclock);
-  //   // set to last timer value
-  //   minutesSpan.innerHTML = currentMin;
-  //   secondsSpan.innerHTML = currentSec;
-  //   running = false;
-  // }
+  // console.log('after click running state of clock is ' + globalVars.pomodoroClock.running)
 })
 
-// controllers for the duration of timer and break
-// adjustments are allowed at anytime, but adjusting a running clock pauses the clock
-
 $('#minusInterval').on('click', function () {
-  // if (!running) {
-    // running = false;
-  var newInterval = updateTimer('interval', 'minus')
+  if (globalVars.pomodoroClock.running) {
+    globalVars.pomodoroClock.pause()
+  }
+  let newInterval = updateTimer('interval', 'minus')
   document.getElementById('interval').innerHTML = newInterval
-  var clock = document.getElementById('timer')
-  clock.querySelector('.minutes').innerHTML = ('0' + newInterval).slice(-2)
-  clock.querySelector('.seconds').innerHTML = '00'
-  // }
+  if (!globalVars.pomodoroClock.breakTime) {
+    var clock = document.getElementById('timer')
+    clock.querySelector('.minutes').innerHTML = ('0' + newInterval).slice(-2)
+    clock.querySelector('.seconds').innerHTML = '00'
+    globalVars.pomodoroClock.setTimeRemaining(document.getElementById('interval').innerHTML)
+  }
 })
 
 $('#addInterval').on('click', function () {
-  // if (!running) {
-    // running = false;
-  var newInterval = updateTimer('interval', 'add')
+  if (globalVars.pomodoroClock.running) {
+    globalVars.pomodoroClock.pause()
+  }
+  let newInterval = updateTimer('interval', 'add')
   document.getElementById('interval').innerHTML = newInterval
-  var clock = document.getElementById('timer')
-  clock.querySelector('.minutes').innerHTML = ('0' + newInterval).slice(-2)
-  clock.querySelector('.seconds').innerHTML = '00'
-  // }
+  if (!globalVars.pomodoroClock.breakTime) {
+    var clock = document.getElementById('timer')
+    clock.querySelector('.minutes').innerHTML = ('0' + newInterval).slice(-2)
+    clock.querySelector('.seconds').innerHTML = '00'
+    globalVars.pomodoroClock.setTimeRemaining(document.getElementById('interval').innerHTML)
+  }
 })
 
 $('#minusBreak').on('click', function () {
-  // if (!running) {
-    // running = false;
+  if (globalVars.pomodoroClock.running) {
+    globalVars.pomodoroClock.pause()
+  }
   var newInterval = updateTimer('break', 'minus')
   document.getElementById('break').innerHTML = newInterval
-  // }
+  if (globalVars.pomodoroClock.breakTime) {
+    var clock = document.getElementById('timer')
+    clock.querySelector('.minutes').innerHTML = ('0' + newInterval).slice(-2)
+    clock.querySelector('.seconds').innerHTML = '00'
+    globalVars.pomodoroClock.setTimeRemaining(document.getElementById('break').innerHTML)
+  }
 })
 
 $('#addBreak').on('click', function () {
-  // if (!running) {
-    // running = false;
+  if (globalVars.pomodoroClock.running) {
+    globalVars.pomodoroClock.pause()
+  }
   var newInterval = updateTimer('break', 'add')
   document.getElementById('break').innerHTML = newInterval
-  // }
+  if (globalVars.pomodoroClock.breakTime) {
+    var clock = document.getElementById('timer')
+    clock.querySelector('.minutes').innerHTML = ('0' + newInterval).slice(-2)
+    clock.querySelector('.seconds').innerHTML = '00'
+    globalVars.pomodoroClock.setTimeRemaining(document.getElementById('break').innerHTML)
+  }
 })
